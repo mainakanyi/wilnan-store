@@ -1,0 +1,177 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  CASHIER
+}
+
+model Tenant {
+  id        BigInt   @id @default(autoincrement())
+  name      String
+  slug      String   @unique
+  currency  String   @default("KES")
+  timezone  String   @default("Africa/Nairobi")
+  createdAt DateTime @default(now())
+
+  users     User[]
+  products  Product[]
+  sales Sale[]
+  inventoryMovements InventoryMovement[]
+  subscription  TenantSubscription?
+}
+
+model User {
+  id           BigInt   @id @default(autoincrement())
+  tenantId     BigInt
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  email        String
+  passwordHash String
+  fullName     String
+  role         Role     @default(OWNER)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  sales Sale[]
+
+  @@unique([tenantId, email])
+}
+
+
+
+enum InventoryMovementType {
+  OPENING
+  RESTOCK
+  SALE
+  RETURN
+  ADJUSTMENT
+  DAMAGE
+  TRANSFER_IN
+  TRANSFER_OUT
+}
+
+model Product {
+  id        BigInt   @id @default(autoincrement())
+  tenantId  BigInt
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+
+  name      String
+  sku       String?
+  price     Decimal  @db.Decimal(10, 2)
+  isActive  Boolean  @default(true)
+
+  inventory Inventory?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  saleItems SaleItem[]
+  movements InventoryMovement[]
+
+  @@unique([tenantId, name])
+}
+
+model Inventory {
+  id        BigInt   @id @default(autoincrement())
+  productId BigInt   @unique
+  product   Product  @relation(fields: [productId], references: [id])
+
+  quantity  Int      @default(0)
+  lowStock  Int      @default(5)
+
+  updatedAt DateTime @updatedAt
+}
+
+
+
+model Sale {
+  id        BigInt   @id @default(autoincrement())
+  tenantId  BigInt
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+
+  cashierId BigInt
+  cashier   User     @relation(fields: [cashierId], references: [id])
+
+  total     Decimal  @db.Decimal(10, 2)
+  status    SaleStatus @default(COMPLETED)
+
+  items     SaleItem[]
+
+  createdAt DateTime @default(now())
+}
+
+model SaleItem {
+  id        BigInt   @id @default(autoincrement())
+  saleId   BigInt
+  sale     Sale     @relation(fields: [saleId], references: [id])
+
+  productId BigInt
+  product   Product @relation(fields: [productId], references: [id])
+
+  quantity  Int
+  price     Decimal  @db.Decimal(10, 2)
+}
+
+model InventoryMovement {
+  id        BigInt   @id @default(autoincrement())
+
+  tenantId  BigInt
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+
+  productId BigInt
+  product   Product  @relation(fields: [productId], references: [id])
+
+  type      InventoryMovementType
+  quantity  Int
+
+  reference String?
+  createdBy BigInt?
+
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, productId])
+}
+
+enum SaleStatus {
+  COMPLETED
+  REFUNDED
+}
+
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  SUSPENDED
+}
+
+model SubscriptionPlan {
+  id          BigInt   @id @default(autoincrement())
+  name        String
+  price       Decimal
+  durationDays Int
+  createdAt   DateTime @default(now())
+
+  subscriptions TenantSubscription[]
+}
+
+model TenantSubscription {
+  id            BigInt   @id @default(autoincrement())
+  tenantId      BigInt   @unique   // 👈 THIS IS THE FIX
+  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+
+  planId        BigInt
+  plan          SubscriptionPlan @relation(fields: [planId], references: [id])
+
+  status        SubscriptionStatus
+  startDate     DateTime
+  endDate       DateTime
+
+  createdAt     DateTime @default(now())
+}
+

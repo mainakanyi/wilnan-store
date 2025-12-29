@@ -16,9 +16,10 @@ import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { UpdateInventoryDto } from './dto/update-inventory.dto';
+import { SubscriptionGuard } from 'src/billing/guards/subscription.guard';
 
 @Controller('products')
-@UseGuards(AuthGuard('jwt'), RolesGuard)
+@UseGuards(AuthGuard('jwt'), RolesGuard, SubscriptionGuard)
 export class ProductsController {
   constructor(private readonly products: ProductsService) {}
 

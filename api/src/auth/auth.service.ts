@@ -40,7 +40,10 @@ export class AuthService {
 
     const { user } = await this.prisma.$transaction(async (tx) => {
       const tenant = await tx.tenant.create({
-        data: { name: tenantName, slug: tenantSlug },
+        data: {
+          name: tenantName,
+          slug: tenantSlug,
+        },
       });
 
       const user = await tx.user.create({
@@ -50,6 +53,26 @@ export class AuthService {
           email,
           passwordHash,
           role: 'OWNER',
+        },
+      });
+
+      const plan = await tx.subscriptionPlan.findFirst({
+        where: { name: 'Starter' },
+      });
+
+      if (!plan) {
+        throw new Error('Starter plan missing. Run prisma db seed.');
+      }
+
+      await tx.tenantSubscription.create({
+        data: {
+          tenantId: tenant.id,
+          planId: plan.id,
+          status: 'TRIAL',
+          startDate: new Date(),
+          endDate: new Date(
+            Date.now() + plan.durationDays * 24 * 60 * 60 * 1000,
+          ),
         },
       });
 
@@ -64,50 +87,6 @@ export class AuthService {
     });
   }
 
-  /**
-   * LEGACY login (kept for Postman / admin testing)
-   * Can be removed later.
-   */
-  // async login(input: LoginDto): Promise<AuthResponse> {
-  //   const { tenantSlug, email, password } = input;
-
-  //   const tenant = await this.prisma.tenant.findUnique({
-  //     where: { slug: tenantSlug },
-  //   });
-  //   if (!tenant) {
-  //     throw new UnauthorizedException('Invalid login');
-  //   }
-
-  //   const user = await this.prisma.user.findUnique({
-  //     where: {
-  //       tenantId_email: {
-  //         tenantId: tenant.id,
-  //         email,
-  //       },
-  //     },
-  //   });
-
-  //   if (!user || !user.isActive) {
-  //     throw new UnauthorizedException('Invalid login');
-  //   }
-
-  //   const ok = await bcrypt.compare(password, user.passwordHash);
-  //   if (!ok) {
-  //     throw new UnauthorizedException('Invalid login');
-  //   }
-
-  //   return this.issueToken({
-  //     sub: user.id.toString(),
-  //     tenantId: tenant.id.toString(),
-  //     role: user.role,
-  //     email: user.email,
-  //   });
-  // }
-
-  /**
-   * DOMAIN-BASED login (POS / Storefront / Admin)
-   * Tenant is inferred from request host or dev header.
-   */
   async loginWithDomain(
     req: FastifyRequest,
     input: LoginDto,

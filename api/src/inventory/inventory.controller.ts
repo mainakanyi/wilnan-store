@@ -5,9 +5,10 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { JwtPayload } from '../auth/types/jwt-payload.type';
 import { InventoryService } from './inventory.service';
+import { SubscriptionGuard } from 'src/billing/guards/subscription.guard';
 
 @Controller('inventory')
-@UseGuards(AuthGuard('jwt'), RolesGuard)
+@UseGuards(AuthGuard('jwt'), RolesGuard, SubscriptionGuard)
 export class InventoryController {
   constructor(private readonly inventory: InventoryService) {}
 

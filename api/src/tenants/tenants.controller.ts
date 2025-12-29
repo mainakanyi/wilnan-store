@@ -5,9 +5,10 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { JwtPayload } from '../auth/types/jwt-payload.type';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { SubscriptionGuard } from 'src/billing/guards/subscription.guard';
 
 @Controller('tenants')
-@UseGuards(AuthGuard('jwt'), RolesGuard)
+@UseGuards(AuthGuard('jwt'), RolesGuard, SubscriptionGuard)
 export class TenantsController {
   constructor(private readonly tenantsService: TenantsService) {}
 

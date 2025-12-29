@@ -151,14 +151,22 @@ enum SubscriptionStatus {
 }
 
 model SubscriptionPlan {
-  id          BigInt   @id @default(autoincrement())
-  name        String
-  price       Decimal
+  id           BigInt   @id @default(autoincrement())
+  name         String   @unique
+  price        Decimal
   durationDays Int
-  createdAt   DateTime @default(now())
+
+  // ✅ ADD DEFAULTS
+  maxUsers     Int      @default(1)
+  maxProducts  Int      @default(50)
+  allowReports Boolean  @default(false)
+
+  createdAt    DateTime @default(now())
 
   subscriptions TenantSubscription[]
 }
+
+
 
 model TenantSubscription {
   id            BigInt   @id @default(autoincrement())

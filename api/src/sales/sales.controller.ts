@@ -14,9 +14,10 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { JwtPayload } from '../auth/types/jwt-payload.type';
 import { SalesService } from './sales.service';
 import { CreateSaleDto } from './dto/create-sale.dto';
+import { SubscriptionGuard } from 'src/billing/guards/subscription.guard';
 
 @Controller('sales')
-@UseGuards(AuthGuard('jwt'), RolesGuard)
+@UseGuards(AuthGuard('jwt'), RolesGuard, SubscriptionGuard)
 export class SalesController {
   constructor(private readonly sales: SalesService) {}
 
